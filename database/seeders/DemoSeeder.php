@@ -181,13 +181,13 @@ class DemoSeeder extends Seeder
     {
         $driver = DB::getDriverName();
 
-        // FK kontrolünü kapat (her DB'nin kendi syntax'ı var)
+        // PostgreSQL'de TRUNCATE ... CASCADE zaten FK'leri otomatik yönetir,
+        // session_replication_role superuser ister, kullanmıyoruz.
+        // MySQL ve SQLite için manuel FK off/on yeterli.
         if ($driver === 'mysql') {
             DB::statement('SET FOREIGN_KEY_CHECKS=0');
         } elseif ($driver === 'sqlite') {
             DB::statement('PRAGMA foreign_keys = OFF');
-        } elseif ($driver === 'pgsql') {
-            DB::statement("SET session_replication_role = 'replica'");
         }
 
         $tables = [
@@ -197,24 +197,29 @@ class DemoSeeder extends Seeder
             'holidays', 'attendances', 'students', 'classrooms',
             'password_reset_codes', 'personal_access_tokens', 'users',
         ];
-        foreach ($tables as $t) {
-            if (\Illuminate\Support\Facades\Schema::hasTable($t)) {
-                if ($driver === 'pgsql') {
-                    // PostgreSQL'de TRUNCATE ... CASCADE — Eloquent truncate() yerine raw
-                    DB::statement("TRUNCATE TABLE \"$t\" RESTART IDENTITY CASCADE");
-                } else {
+
+        if ($driver === 'pgsql') {
+            // Tek seferde TRUNCATE CASCADE — birbirine bağlı tüm tabloları temizler
+            $existing = array_filter(
+                $tables,
+                fn ($t) => \Illuminate\Support\Facades\Schema::hasTable($t)
+            );
+            if (! empty($existing)) {
+                $quoted = implode(', ', array_map(fn ($t) => "\"$t\"", $existing));
+                DB::statement("TRUNCATE TABLE $quoted RESTART IDENTITY CASCADE");
+            }
+        } else {
+            foreach ($tables as $t) {
+                if (\Illuminate\Support\Facades\Schema::hasTable($t)) {
                     DB::table($t)->truncate();
                 }
             }
         }
 
-        // FK kontrolünü tekrar aç
         if ($driver === 'mysql') {
             DB::statement('SET FOREIGN_KEY_CHECKS=1');
         } elseif ($driver === 'sqlite') {
             DB::statement('PRAGMA foreign_keys = ON');
-        } elseif ($driver === 'pgsql') {
-            DB::statement("SET session_replication_role = 'origin'");
         }
     }
 
