@@ -15,7 +15,7 @@ php artisan migrate --force || echo "WARN: migrate failed, devam ediyoruz"
 USER_COUNT=$(php artisan tinker --execute="echo \App\Models\User::count();" 2>/dev/null | tail -1 | tr -d '[:space:]')
 
 # Mazeret dosyalari icin sentinel: bu dosya varsa demo PDF'leri uretilmis demek.
-SENTINEL="storage/app/mazeret/.demo-seeded-v2"
+SENTINEL="storage/app/mazeret/.demo-seeded-v3"
 
 if [ "$USER_COUNT" = "0" ] || [ -z "$USER_COUNT" ]; then
   echo "==> Database is empty, full seed in background..."

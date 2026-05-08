@@ -436,7 +436,12 @@ class DemoSeeder extends Seeder
                 $filePath = 'mazeret/'.$cid.'/'.$filename;
 
                 // Gercek demo PDF dosyasini Storage'a yaz (yoksa olustur).
-                Storage::disk('local')->put($filePath, $demoPdfBytes);
+                // Storage hatasi seeder'i durdurmasin — log'la, devam et.
+                try {
+                    Storage::disk('local')->put($filePath, $demoPdfBytes);
+                } catch (\Throwable $e) {
+                    error_log("DemoSeeder: PDF yazilamadi {$filePath}: " . $e->getMessage());
+                }
 
                 $m = MazeretRequest::create([
                     'student_id'         => $sRow->id,
