@@ -402,8 +402,8 @@ class AttendanceController extends Controller
             ->where('status', 'absent')
             ->select('student_id', 'classroom_id', DB::raw('COUNT(*) as cnt'))
             ->groupBy('student_id', 'classroom_id')
-            ->having('cnt', '>=', max(1, $limit - 1))
-            ->orderByDesc('cnt')
+            ->havingRaw('COUNT(*) >= ?', [max(1, $limit - 1)])
+            ->orderByRaw('COUNT(*) DESC')
             ->get();
 
         $studentIds = $absences->pluck('student_id')->unique();
@@ -467,7 +467,7 @@ class AttendanceController extends Controller
             ->where('status', 'absent')
             ->select('student_id', 'classroom_id', DB::raw('COUNT(*) as cnt'))
             ->groupBy('student_id', 'classroom_id')
-            ->having('cnt', '>=', max(1, $limit - 1))
+            ->havingRaw('COUNT(*) >= ?', [max(1, $limit - 1)])
             ->get();
 
         $riskCount = $absences->count();

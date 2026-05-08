@@ -181,7 +181,7 @@ class AnnouncementController extends Controller
                 ->where('status', 'absent')
                 ->select('student_id', DB::raw('COUNT(*) as cnt'))
                 ->groupBy('student_id')
-                ->having('cnt', '>=', max(1, $limit - 1))
+                ->havingRaw('COUNT(*) >= ?', [max(1, $limit - 1)])
                 ->pluck('student_id');
             return Student::where('classroom_id', $classroom->id)
                 ->whereIn('id', $riskIds)
