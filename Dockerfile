@@ -56,7 +56,6 @@ RUN mkdir -p storage/framework/{cache,sessions,views,testing} storage/logs boots
 ENV PORT=10000
 EXPOSE 10000
 
-# Migrate + seed + serve
-CMD php artisan migrate --force \
-    && php artisan db:seed --class=DemoSeeder --force \
-    && php -S 0.0.0.0:${PORT} -t public public/index.php
+# Start script — migrate hızlı, seed arka planda (port scan timeout olmasın)
+COPY --chmod=755 docker-start.sh /app/docker-start.sh
+CMD ["/app/docker-start.sh"]
