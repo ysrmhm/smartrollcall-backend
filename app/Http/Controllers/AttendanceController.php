@@ -295,19 +295,24 @@ class AttendanceController extends Controller
             ->when(! $showArchived, fn ($q) => $q->whereNull('archived_at'))
             ->pluck('id');
 
+        $driver = DB::connection()->getDriverName();
+        $dateExpr = $driver === 'pgsql'
+            ? "to_char(date, 'YYYY-MM-DD')"
+            : "DATE_FORMAT(date, '%Y-%m-%d')";
+
         $sessions = Attendance::query()
             ->whereIn('classroom_id', $classroomIds)
             ->select(
                 'classroom_id',
-                DB::raw("DATE_FORMAT(date, '%Y-%m-%d') as date"),
+                DB::raw("$dateExpr as date"),
                 DB::raw("SUM(CASE WHEN status='present' THEN 1 ELSE 0 END) as present"),
                 DB::raw("SUM(CASE WHEN status='absent' THEN 1 ELSE 0 END) as absent"),
                 DB::raw("SUM(CASE WHEN status='late' THEN 1 ELSE 0 END) as late"),
                 DB::raw("SUM(CASE WHEN status='excused' THEN 1 ELSE 0 END) as excused"),
                 DB::raw('COUNT(*) as total'),
             )
-            ->groupBy('classroom_id', 'date')
-            ->orderByDesc('date')
+            ->groupBy('classroom_id', DB::raw($dateExpr))
+            ->orderByDesc(DB::raw($dateExpr))
             ->get();
 
         $classrooms = Classroom::whereIn('id', $sessions->pluck('classroom_id')->unique())->get()->keyBy('id');
