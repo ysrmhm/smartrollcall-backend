@@ -45,8 +45,9 @@ class MazeretController extends Controller
         }
 
         // Bekleyenler önce, sonra en yeni
+        // CASE WHEN: hem MySQL hem PostgreSQL'de standart (FIELD() MySQL-only)
         $items = $query
-            ->orderByRaw("FIELD(status, 'pending', 'approved', 'rejected')")
+            ->orderByRaw("CASE status WHEN 'pending' THEN 0 WHEN 'approved' THEN 1 WHEN 'rejected' THEN 2 ELSE 3 END")
             ->orderByDesc('created_at')
             ->get()
             ->map(fn (MazeretRequest $m) => $this->transform($m));
