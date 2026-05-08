@@ -14,12 +14,20 @@ php artisan migrate --force || echo "WARN: migrate failed, devam ediyoruz"
 # 2) Seeder kontrolü — sadece users tablosu boşsa seed yap
 USER_COUNT=$(php artisan tinker --execute="echo \App\Models\User::count();" 2>/dev/null | tail -1 | tr -d '[:space:]')
 
+# Mazeret dosyalari icin sentinel: bu dosya varsa demo PDF'leri uretilmis demek.
+SENTINEL="storage/app/mazeret/.demo-seeded-v2"
+
 if [ "$USER_COUNT" = "0" ] || [ -z "$USER_COUNT" ]; then
-  echo "==> Database is empty, seeding in background..."
-  # Arka planda seed et — port binding'i bloke etmesin
-  (php artisan db:seed --class=DemoSeeder --force > /tmp/seed.log 2>&1 &)
+  echo "==> Database is empty, full seed in background..."
+  (php artisan db:seed --class=DemoSeeder --force > /tmp/seed.log 2>&1 && \
+   mkdir -p storage/app/mazeret && touch "$SENTINEL") &
+elif [ ! -f "$SENTINEL" ]; then
+  # DB dolu ama mazeret PDF'leri eksik (eski seed) — sadece mazeret tablosunu yeniden seed et
+  echo "==> Mazeret PDF dosyalari eksik, yeniden seed ediliyor..."
+  (php artisan db:seed --class=DemoSeeder --force > /tmp/reseed.log 2>&1 && \
+   mkdir -p storage/app/mazeret && touch "$SENTINEL") &
 else
-  echo "==> Database has $USER_COUNT users, skipping seed."
+  echo "==> Database has $USER_COUNT users + mazeret files, skipping seed."
 fi
 
 # 3) PHP server'ı hemen başlat — Render port scan'i hemen algılar

@@ -17,6 +17,7 @@ use Carbon\Carbon;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * SmartRollCall — KAPSAMLI DEMO SEED
@@ -418,6 +419,10 @@ class DemoSeeder extends Seeder
 
         $statusFlow = ['pending', 'approved', 'rejected'];
 
+        // Demo amaçlı minimal-valid PDF içeriği (gerçek "Sağlık Raporu" yazısı içerir).
+        // Her mazeret kaydı için Storage'a yazılır — frontend'de açıldığında PDF olarak görünür.
+        $demoPdfBytes = $this->buildDemoPdf();
+
         foreach ($this->departments as $dept) {
             $teacher = $teachersByDept[$dept][0];
             $cids = $classroomMap[$teacher->id];
@@ -427,15 +432,21 @@ class DemoSeeder extends Seeder
             foreach ($studentRows as $i => $sRow) {
                 $status = $statusFlow[$i % 3];
                 $date = Carbon::today()->subDays(random_int(3, 35))->toDateString();
+                $filename = 'demo-'.uniqid().'.pdf';
+                $filePath = 'mazeret/'.$cid.'/'.$filename;
+
+                // Gercek demo PDF dosyasini Storage'a yaz (yoksa olustur).
+                Storage::disk('local')->put($filePath, $demoPdfBytes);
+
                 $m = MazeretRequest::create([
                     'student_id'         => $sRow->id,
                     'classroom_id'       => $cid,
                     'date'               => $date,
                     'reason'             => $reasons[array_rand($reasons)],
-                    'file_path'          => 'mazeret/'.$cid.'/demo-'.uniqid().'.pdf',
-                    'file_original_name' => 'rapor.pdf',
+                    'file_path'          => $filePath,
+                    'file_original_name' => 'saglik-raporu.pdf',
                     'file_mime'          => 'application/pdf',
-                    'file_size'          => random_int(120_000, 1_400_000),
+                    'file_size'          => strlen($demoPdfBytes),
                     'status'             => $status,
                     'reviewer_id'        => $status !== 'pending' ? $teacher->id : null,
                     'reviewed_at'        => $status !== 'pending' ? now()->subDays(random_int(0, 5)) : null,
@@ -451,6 +462,54 @@ class DemoSeeder extends Seeder
                 }
             }
         }
+    }
+
+    /**
+     * Minimal valid PDF (PDF 1.4) — "Saglik Raporu (Demo)" yazisi iceren tek sayfa.
+     * Boyut yaklasik 1KB. Tum PDF reader'larda acilir.
+     */
+    private function buildDemoPdf(): string
+    {
+        $content = "BT /F1 18 Tf 70 760 Td (SAGLIK RAPORU - DEMO) Tj ET\n"
+                 . "BT /F1 11 Tf 70 720 Td (SmartRollCall - Demo Saglik Raporu) Tj ET\n"
+                 . "BT /F1 11 Tf 70 700 Td (Bu dosya demo amacli olusturulmustur.) Tj ET\n"
+                 . "BT /F1 10 Tf 70 670 Td (Hasta: Ornek Ogrenci) Tj ET\n"
+                 . "BT /F1 10 Tf 70 655 Td (Tarih: " . date('d.m.Y') . ") Tj ET\n"
+                 . "BT /F1 10 Tf 70 640 Td (Tani: Akut Ust Solunum Yolu Enfeksiyonu) Tj ET\n"
+                 . "BT /F1 10 Tf 70 620 Td (Onerilen Istirahat: 3 gun) Tj ET\n"
+                 . "BT /F1 9 Tf 70 580 Td (Bu rapor SmartRollCall demo verisidir.) Tj ET\n"
+                 . "BT /F1 9 Tf 70 565 Td (Gercek tibbi belge degildir.) Tj ET\n";
+
+        $contentLen = strlen($content);
+
+        $pdf  = "%PDF-1.4\n";
+        $offsets = [];
+
+        $offsets[1] = strlen($pdf);
+        $pdf .= "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n";
+
+        $offsets[2] = strlen($pdf);
+        $pdf .= "2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n";
+
+        $offsets[3] = strlen($pdf);
+        $pdf .= "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] "
+              . "/Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>\nendobj\n";
+
+        $offsets[4] = strlen($pdf);
+        $pdf .= "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n";
+
+        $offsets[5] = strlen($pdf);
+        $pdf .= "5 0 obj\n<< /Length {$contentLen} >>\nstream\n{$content}endstream\nendobj\n";
+
+        $xrefOffset = strlen($pdf);
+        $pdf .= "xref\n0 6\n";
+        $pdf .= "0000000000 65535 f \n";
+        for ($i = 1; $i <= 5; $i++) {
+            $pdf .= sprintf("%010d 00000 n \n", $offsets[$i]);
+        }
+        $pdf .= "trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n{$xrefOffset}\n%%EOF\n";
+
+        return $pdf;
     }
 
     /** Her sınıfın ilkine 1 duyuru bırak (bölüm başına 3 → 21 toplam). */
