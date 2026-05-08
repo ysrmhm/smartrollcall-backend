@@ -1,0 +1,88 @@
+# Render Blueprint — backend + PostgreSQL ücretsiz tier
+# Bu dosyayı yeni Render projesinde "Blueprint" seçerek otomatik kurabilirsin.
+# Manuel kurulum da yapabilirsin (Web Service + DB ayrı ayrı), bu sadece kolaylık için.
+
+services:
+  - type: web
+    name: smartrollcall-backend
+    runtime: docker
+    plan: free
+    region: frankfurt
+    branch: main
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: APP_KEY
+        value: base64:zW5oq0n4Y7oPDx9iHY5KPzG2G4+zeC5XG5cXPWc+EDY=
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: "false"
+      - key: APP_NAME
+        value: SmartRollCall
+      - key: APP_LOCALE
+        value: tr
+      - key: APP_FALLBACK_LOCALE
+        value: en
+      - key: APP_FAKER_LOCALE
+        value: tr_TR
+      - key: SESSION_DRIVER
+        value: file
+      - key: CACHE_STORE
+        value: file
+      - key: QUEUE_CONNECTION
+        value: sync
+      - key: FILESYSTEM_DISK
+        value: local
+      - key: LOG_CHANNEL
+        value: stack
+      - key: LOG_STACK
+        value: single
+      - key: LOG_LEVEL
+        value: warning
+      - key: BCRYPT_ROUNDS
+        value: "12"
+      - key: DB_CONNECTION
+        value: pgsql
+      - key: DB_HOST
+        fromDatabase:
+          name: smartrollcall-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: smartrollcall-db
+          property: port
+      - key: DB_DATABASE
+        fromDatabase:
+          name: smartrollcall-db
+          property: database
+      - key: DB_USERNAME
+        fromDatabase:
+          name: smartrollcall-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: smartrollcall-db
+          property: password
+      - key: MAIL_MAILER
+        value: smtp
+      - key: MAIL_HOST
+        value: smtp.gmail.com
+      - key: MAIL_PORT
+        value: "587"
+      - key: MAIL_USERNAME
+        value: tyasarmuhammed@gmail.com
+      - key: MAIL_PASSWORD
+        value: nfhppurvisiqpivz
+      - key: MAIL_ENCRYPTION
+        value: tls
+      - key: MAIL_FROM_ADDRESS
+        value: tyasarmuhammed@gmail.com
+      - key: MAIL_FROM_NAME
+        value: SmartRollCall
+
+databases:
+  - name: smartrollcall-db
+    plan: free
+    region: frankfurt
+    databaseName: smartrollcall
+    user: smartroll

@@ -180,10 +180,14 @@ class DemoSeeder extends Seeder
     private function truncate(): void
     {
         $driver = DB::getDriverName();
+
+        // FK kontrolünü kapat (her DB'nin kendi syntax'ı var)
         if ($driver === 'mysql') {
             DB::statement('SET FOREIGN_KEY_CHECKS=0');
         } elseif ($driver === 'sqlite') {
             DB::statement('PRAGMA foreign_keys = OFF');
+        } elseif ($driver === 'pgsql') {
+            DB::statement("SET session_replication_role = 'replica'");
         }
 
         $tables = [
@@ -195,14 +199,22 @@ class DemoSeeder extends Seeder
         ];
         foreach ($tables as $t) {
             if (\Illuminate\Support\Facades\Schema::hasTable($t)) {
-                DB::table($t)->truncate();
+                if ($driver === 'pgsql') {
+                    // PostgreSQL'de TRUNCATE ... CASCADE — Eloquent truncate() yerine raw
+                    DB::statement("TRUNCATE TABLE \"$t\" RESTART IDENTITY CASCADE");
+                } else {
+                    DB::table($t)->truncate();
+                }
             }
         }
 
+        // FK kontrolünü tekrar aç
         if ($driver === 'mysql') {
             DB::statement('SET FOREIGN_KEY_CHECKS=1');
         } elseif ($driver === 'sqlite') {
             DB::statement('PRAGMA foreign_keys = ON');
+        } elseif ($driver === 'pgsql') {
+            DB::statement("SET session_replication_role = 'origin'");
         }
     }
 

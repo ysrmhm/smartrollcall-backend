@@ -1,8 +1,9 @@
-# Railway nixpacks build config — PHP 8.3 + Composer + MySQL extension
-# Frontend (Node) zorunluluğu yok; sadece Laravel backend.
+# Render/Railway nixpacks build config — PHP 8.3 + Composer
+# Hem MySQL (pdo_mysql) hem PostgreSQL (pdo_pgsql) extension'ları yüklenir,
+# .env'deki DB_CONNECTION'a göre Laravel uygunu seçer.
 
 [phases.setup]
-nixPkgs = ['php83', 'php83Packages.composer', 'php83Extensions.pdo_mysql', 'php83Extensions.mbstring', 'php83Extensions.openssl', 'php83Extensions.curl', 'php83Extensions.fileinfo', 'php83Extensions.zip', 'php83Extensions.gd', 'php83Extensions.intl', 'php83Extensions.tokenizer', 'php83Extensions.xml', 'php83Extensions.bcmath']
+nixPkgs = ['php83', 'php83Packages.composer', 'php83Extensions.pdo_mysql', 'php83Extensions.pdo_pgsql', 'php83Extensions.mbstring', 'php83Extensions.openssl', 'php83Extensions.curl', 'php83Extensions.fileinfo', 'php83Extensions.zip', 'php83Extensions.gd', 'php83Extensions.intl', 'php83Extensions.tokenizer', 'php83Extensions.xml', 'php83Extensions.bcmath']
 
 [phases.install]
 cmds = [
