@@ -18,17 +18,25 @@ USER_COUNT=$(php artisan tinker --execute="echo \App\Models\User::count();" 2>/d
 SENTINEL="storage/app/mazeret/.demo-seeded-v3"
 
 if [ "$USER_COUNT" = "0" ] || [ -z "$USER_COUNT" ]; then
-  echo "==> Database is empty, full seed (FOREGROUND - tum loglari gor)..."
-  # FOREGROUND seed: hata varsa goruruz. Render port scan 8dk timeout, seed ~2dk = guvenli.
-  php artisan db:seed --class=DemoSeeder --force 2>&1 | sed 's/^/[SEED] /' || echo "[SEED] FAILED but continuing"
-  mkdir -p storage/app/mazeret && touch "$SENTINEL"
-  echo "[SEED] sentinel written: $SENTINEL"
+  echo "==> Database is empty, full seed in BACKGROUND (loglar [SEED] prefix'i ile)..."
+  # Background ama stdout/stderr'i parent'a (Render log) yonlendir.
+  # nohup + & ile fork edilir; cikti `tee /proc/.../fd/1` ile Render'a dusurulur.
+  (
+    php artisan db:seed --class=DemoSeeder --force 2>&1 \
+      | sed 's/^/[SEED] /' \
+      || echo "[SEED] FAILED";
+    mkdir -p storage/app/mazeret && touch "$SENTINEL";
+    echo "[SEED] DONE - sentinel: $SENTINEL"
+  ) &
 elif [ ! -f "$SENTINEL" ]; then
-  # DB dolu ama mazeret PDF'leri eksik — FOREGROUND reseed
-  echo "==> Mazeret PDF eksik, reseed (FOREGROUND - tum loglari gor)..."
-  php artisan db:seed --class=DemoSeeder --force 2>&1 | sed 's/^/[RESEED] /' || echo "[RESEED] FAILED but continuing"
-  mkdir -p storage/app/mazeret && touch "$SENTINEL"
-  echo "[RESEED] sentinel written: $SENTINEL"
+  echo "==> Mazeret PDF eksik, reseed in BACKGROUND (loglar [RESEED] prefix'i ile)..."
+  (
+    php artisan db:seed --class=DemoSeeder --force 2>&1 \
+      | sed 's/^/[RESEED] /' \
+      || echo "[RESEED] FAILED";
+    mkdir -p storage/app/mazeret && touch "$SENTINEL";
+    echo "[RESEED] DONE - sentinel: $SENTINEL"
+  ) &
 else
   echo "==> Database has $USER_COUNT users + mazeret files, skipping seed."
 fi
