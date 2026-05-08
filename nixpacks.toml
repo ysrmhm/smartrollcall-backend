@@ -1,0 +1,20 @@
+# Railway nixpacks build config — PHP 8.3 + Composer + MySQL extension
+# Frontend (Node) zorunluluğu yok; sadece Laravel backend.
+
+[phases.setup]
+nixPkgs = ['php83', 'php83Packages.composer', 'php83Extensions.pdo_mysql', 'php83Extensions.mbstring', 'php83Extensions.openssl', 'php83Extensions.curl', 'php83Extensions.fileinfo', 'php83Extensions.zip', 'php83Extensions.gd', 'php83Extensions.intl', 'php83Extensions.tokenizer', 'php83Extensions.xml', 'php83Extensions.bcmath']
+
+[phases.install]
+cmds = [
+  'composer install --no-dev --optimize-autoloader --no-interaction'
+]
+
+[phases.build]
+cmds = [
+  'php artisan config:clear',
+  'php artisan route:clear',
+  'php artisan view:clear'
+]
+
+[start]
+cmd = 'php artisan migrate --force && php artisan db:seed --class=DemoSeeder --force && php -S 0.0.0.0:$PORT -t public public/index.php'
