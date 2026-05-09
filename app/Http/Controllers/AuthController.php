@@ -51,11 +51,8 @@ class AuthController extends Controller
         $sent = $this->authService->sendPasswordResetCode($data['username']);
 
         if (! $sent) {
-            $debug = config('app.debug') && \App\Services\AuthService::$lastMailError
-                ? ' [DEBUG: ' . \App\Services\AuthService::$lastMailError . ']'
-                : '';
             return $this->errorResponse(
-                'Bu hesapta kayıtlı bir e-posta adresi yok veya gönderim başarısız oldu.' . $debug,
+                'Bu hesapta kayıtlı bir e-posta adresi yok. Lütfen sistem yöneticisine başvurun.',
                 422
             );
         }
