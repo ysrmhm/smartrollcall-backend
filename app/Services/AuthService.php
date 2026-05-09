@@ -14,6 +14,8 @@ class AuthService
 {
     private const RESET_CODE_TTL_MINUTES = 15;
 
+    public static ?string $lastMailError = null;
+
     public function authenticate(string $username, string $password): ?array
     {
         $user = User::where('username', $username)->first();
@@ -101,6 +103,8 @@ class AuthService
                 'username' => $user->username,
                 'error'    => $e->getMessage(),
             ]);
+            error_log('[MAIL_ERROR] ' . $e->getMessage());
+            self::$lastMailError = $e->getMessage();
             return false;
         }
 
