@@ -35,13 +35,15 @@ use Illuminate\Support\Facades\Storage;
 class MegaDemoSeeder extends Seeder
 {
     // ---- ÖLÇEK AYARLARI (tek noktadan) -------------------------------
+    // Render free tier (512MB RAM, paylaşımlı CPU) için optimize edildi:
+    // tek HTTP isteğinde (~maks 60-120s) bitecek + grafikler akıcı kalacak ölçek.
     /** Her hocaya kaç sınıf. (3 hoca × bu sayı ≤ 40 olmalı — slot kapasitesi) */
-    private const CLASSES_PER_TEACHER = 8;
+    private const CLASSES_PER_TEACHER = 5;
     /** Sınıf başına öğrenci alt/üst sınırı (her sınıf bu aralıkta rastgele). */
-    private const STUDENTS_MIN = 28;
-    private const STUDENTS_MAX = 40;
+    private const STUDENTS_MIN = 25;
+    private const STUDENTS_MAX = 38;
     /** Geriye dönük kaç haftalık yoklama üretilsin. */
-    private const ATTENDANCE_WEEKS = 8;
+    private const ATTENDANCE_WEEKS = 6;
     /** Toplu insert chunk boyutu (free tier RAM dostu). */
     private const CHUNK = 1000;
     // ------------------------------------------------------------------
@@ -126,10 +128,20 @@ class MegaDemoSeeder extends Seeder
     private array $weekDays = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma'];
     private array $timeSlots = ['08:00', '09:00', '10:00', '11:00', '13:00', '14:00', '15:00', '16:00'];
 
+    /**
+     * Tüm öğrencilere ortak şifre: "123456". Hash TEK SEFER hesaplanır ve
+     * her öğrenciye kopyalanır — 5000+ ayrı bcrypt yerine 1 bcrypt (free tier'da
+     * en büyük hızlanma). Öğrenci girişi: numara + "123456".
+     */
+    private string $studentPasswordHash = '';
+
     public function run(): void
     {
         @set_time_limit(0);
         @ini_set('memory_limit', '512M');
+
+        // Öğrenci şifre hash'ini TEK SEFER hesapla (hepsi "123456").
+        $this->studentPasswordHash = Hash::make('123456');
 
         $this->command->info('SmartRollCall MEGA demo verileri yükleniyor...');
         $this->command->info(sprintf(
@@ -182,7 +194,7 @@ class MegaDemoSeeder extends Seeder
         $this->command->info('============================================================');
         $this->command->info("  MEGA DEMO HAZIR! ({$elapsed}s)");
         $this->command->info('  Hoca:     demo.bil1 / 123456   (21 hoca, hepsi 123456)');
-        $this->command->info('  Öğrenci:  bir öğrenci numarası / aynı numara (ör. 2401001)');
+        $this->command->info('  Öğrenci:  <öğrenci numarası> / 123456   (tüm öğrenciler 123456)');
         $this->command->info('============================================================');
     }
 
@@ -333,7 +345,7 @@ class MegaDemoSeeder extends Seeder
                             'last_name'            => $last,
                             'email'                => strtolower($this->ascii($first).'.'.$this->ascii($last)).$num.'@smartroll.demo',
                             'phone'                => '0533'.random_int(1000000, 9999999),
-                            'password'             => Hash::make($num),
+                            'password'             => $this->studentPasswordHash,
                             'must_change_password' => false,
                             'created_at'           => $now,
                             'updated_at'           => $now,
