@@ -11,13 +11,24 @@ cd /app
 echo "==> Running migrations..."
 php artisan migrate --force || echo "WARN: migrate failed, devam ediyoruz"
 
-# 2) Seeder kontrolü — SADECE users tablosu tamamen boşsa seed yap.
-#    (Önceki sürümdeki sentinel/reseed mantığı kaldırıldı: her deploy'da
-#     mevcut veriyi eziyordu. Artık veri varsa asla dokunulmaz — mega demo
-#     verisi kalıcıdır. Sıfırdan kurulumda yine DemoSeeder ile dolar.)
+# 2) Seeder kontrolü.
+#    Normalde: SADECE users tablosu boşsa seed yapılır (mevcut veri korunur).
+#    FORCE_RESEED=true ise: veritabanı tamamen temizlenip yeniden seed edilir.
+#      (Numara/şifre formatı değişikliği gibi tek seferlik düzeltmeler için.
+#       Çalıştıktan sonra Render Environment'tan FORCE_RESEED'i kaldır/false yap,
+#       yoksa her deploy'da veri sıfırlanır.)
 USER_COUNT=$(php artisan tinker --execute="echo \App\Models\User::count();" 2>/dev/null | tail -1 | tr -d '[:space:]')
 
-if [ "$USER_COUNT" = "0" ] || [ -z "$USER_COUNT" ]; then
+if [ "$FORCE_RESEED" = "true" ]; then
+  echo "==> FORCE_RESEED=true → veritabanı sıfırlanıp yeniden seed edilecek (BACKGROUND)..."
+  (
+    php artisan migrate:fresh --force 2>&1 | sed 's/^/[SEED] /';
+    php artisan db:seed --class=DemoSeeder --force 2>&1 \
+      | sed 's/^/[SEED] /' \
+      || echo "[SEED] FAILED";
+    echo "[SEED] DONE"
+  ) &
+elif [ "$USER_COUNT" = "0" ] || [ -z "$USER_COUNT" ]; then
   echo "==> Database is empty, full seed in BACKGROUND (loglar [SEED] prefix'i ile)..."
   (
     php artisan db:seed --class=DemoSeeder --force 2>&1 \

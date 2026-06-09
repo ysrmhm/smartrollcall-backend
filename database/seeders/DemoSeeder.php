@@ -271,8 +271,8 @@ class DemoSeeder extends Seeder
             foreach ([1, 2] as $year) {
                 $list = [];
                 for ($i = 1; $i <= 10; $i++) {
-                    // Numara şeması: Y-D-NN  → 24-01-001 → 2401001 (1.sınıf, ilk bölüm, 1. öğrenci)
-                    $num = sprintf('24%02d%03d', ($deptIndex * 2) + $year, $i);
+                    // Numara şeması: Y-DD-NNNN → 24-01-0001 → 24010001 (kılavuzdaki 8 haneli format)
+                    $num = sprintf('24%02d%04d', ($deptIndex * 2) + $year, $i);
                     $first = $this->studentFirstNames[array_rand($this->studentFirstNames)];
                     $last = $this->studentLastNames[array_rand($this->studentLastNames)];
                     $list[] = [
@@ -331,7 +331,7 @@ class DemoSeeder extends Seeder
                             'last_name'            => $s['last_name'],
                             'email'                => $s['email'],
                             'phone'                => $s['phone'],
-                            'password'             => Hash::make($s['student_number']), // ilk şifre = numara
+                            'password'             => Hash::make('123456'), // kılavuzdaki gibi: tüm öğrenci şifreleri 123456
                             'must_change_password' => false, // demo modu — değiştirmek zorunda değil
                         ]);
                     }
