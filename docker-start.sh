@@ -20,18 +20,16 @@ php artisan migrate --force || echo "WARN: migrate failed, devam ediyoruz"
 USER_COUNT=$(php artisan tinker --execute="echo \App\Models\User::count();" 2>/dev/null | tail -1 | tr -d '[:space:]')
 
 if [ "$FORCE_RESEED" = "true" ]; then
-  echo "==> FORCE_RESEED=true → veritabanı sıfırlanıp yeniden seed edilecek (BACKGROUND)..."
-  (
-    php artisan migrate:fresh --force 2>&1 | sed 's/^/[SEED] /';
-    php artisan db:seed --class=DemoSeeder --force 2>&1 \
-      | sed 's/^/[SEED] /' \
-      || echo "[SEED] FAILED";
-    echo "[SEED] DONE"
-  ) &
+  echo "==> FORCE_RESEED=true → veritabanı sıfırlanıp yeniden seed edilecek (ÖNPLAN, tam bitene kadar bekle)..."
+  # ÖNEMLI: Bu seed ARKA PLANDA DEGIL, sunucu baslamadan ONCE tam calisir.
+  # Boylece 20000+ yoklama satiri yarida kesilmez (onceki sorunun sebebi buydu).
+  php artisan migrate:fresh --force 2>&1 | sed 's/^/[SEED] /'
+  php artisan db:seed --class=MegaDemoSeeder --force 2>&1 | sed 's/^/[SEED] /' || echo "[SEED] FAILED"
+  echo "[SEED] DONE — tam yuklendi"
 elif [ "$USER_COUNT" = "0" ] || [ -z "$USER_COUNT" ]; then
   echo "==> Database is empty, full seed in BACKGROUND (loglar [SEED] prefix'i ile)..."
   (
-    php artisan db:seed --class=DemoSeeder --force 2>&1 \
+    php artisan db:seed --class=MegaDemoSeeder --force 2>&1 \
       | sed 's/^/[SEED] /' \
       || echo "[SEED] FAILED";
     echo "[SEED] DONE"
